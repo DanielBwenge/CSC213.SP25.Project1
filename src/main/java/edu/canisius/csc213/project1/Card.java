@@ -27,12 +27,12 @@ public class Card {
         return rank;
     }
 
-    @Override
+    //@Override
     public String toString() {
         return rank + " of " + suit;
     }
 
-    @Override
+    //@Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
@@ -40,8 +40,25 @@ public class Card {
         return suit == card.suit && rank == card.rank;
     }
 
-    @Override
+    //@Override
     public int hashCode() {
         return Objects.hash(suit, rank);
     }
+    public static void main(String[] args) {
+        Card card1 = new Card(Suit.HEARTS, Rank.ACE);
+        Card card2 = new Card(Suit.SPADES, Rank.KING);
+        Card card3 = new Card(Suit.HEARTS, Rank.ACE);
+
+        System.out.println("Card 1: " + card1);
+        System.out.println("Card 2: " + card2);
+        System.out.println("Card 3: " + card3);
+
+        System.out.println("Card 1 equals Card 2? " + card1.equals(card2));
+        System.out.println("Card 1 equals Card 3? " + card1.equals(card3));
+
+        System.out.println("Card 1 hashCode: " + card1.hashCode());
+        System.out.println("Card 2 hashCode: " + card2.hashCode());
+        System.out.println("Card 3 hashCode: " + card3.hashCode());
+    }
+
 }

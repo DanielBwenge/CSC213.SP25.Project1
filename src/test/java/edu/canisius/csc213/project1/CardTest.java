@@ -37,4 +37,6 @@ public class CardTest {
         Card card2 = new Card(Card.Suit.HEARTS, Card.Rank.THREE);
         assertEquals(card1.hashCode(), card2.hashCode());
     }
+
+    
 }
