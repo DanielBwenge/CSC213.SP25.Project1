@@ -1,71 +1,71 @@
 package main.java.edu.canisius.csc213.project1;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
+
+//Ran into issues creating the CSV file and writing to it, so i had help in order to get this part to work as required.
 
 public class UniqueHands {
     public static void main(String[] args) {
         int[] deckSizes = {24, 28};
         int[] handSizes = {6, 7};
         int trials = 5;
-    
-        try (PrintWriter csvWriter = createCSVWriter()) {
-            System.out.println("🃏 Deck Simulation: How long to see every possible hand?");
-            System.out.println("------------------------------------------------------");
-    
-            for (int deckSize : deckSizes) {
-                for (int handSize : handSizes) {
-                    System.out.printf("\nDeck Size: %d | Hand Size: %d%n", deckSize, handSize);
-                    System.out.println("--------------------------------");
+
+        System.out.println("Deck Simulation: How long to see every possible hand?");
+        System.out.println("------------------------------------------------------");
+
+        // Initialize CSV file
+        initializeCSV();
+
+        for (int deckSize : deckSizes) {
+            for (int handSize : handSizes) {
+                int totalUniqueHands = calculateTotalUniqueHands(deckSize, handSize);
+                
+                for (int trial = 1; trial <= trials; trial++) {
+                    System.out.printf("\nDeck Size: %d | Hand Size: %d | Trial %d\n", 
+                                    deckSize, handSize, trial);
+                    System.out.println("----------------------------------------");
                     
-                    int totalUniqueHands = calculateTotalUniqueHands(deckSize, handSize);
+                    long startTime = System.nanoTime();
+                    int attempts = runTrialWithDetailedProgress(deckSize, handSize, totalUniqueHands);
+                    double seconds = (System.nanoTime() - startTime) / 1_000_000_000.0;
+                    writeToCSV(deckSize, handSize, trial, attempts, seconds);
                     
-                    for (int trial = 1; trial <= trials; trial++) {
-                        long startTime = System.nanoTime();
-                        int attempts = runTrialWithProgress(deckSize, handSize, totalUniqueHands, trial);
-                        long endTime = System.nanoTime();
-                        double seconds = (endTime - startTime) / 1_000_000_000.0;
-                        
-                        // Write to CSV
-                        csvWriter.printf("%d,%d,%d,%,d,%.3f%n", 
-                                      deckSize, handSize, trial, attempts, seconds);
-                        
-                        System.out.printf("Deck Size: %d | Hand Size: %d | Trial %d | Attempts: %,d | Time: %.3f sec%n",
-                                        deckSize, handSize, trial, attempts, seconds);
-                    }
+                    System.out.printf("\nDeck Size: %d | Hand Size: %d | Trial %d | Attempts: %,d | Time: %.3f sec\n",
+                                    deckSize, handSize, trial, attempts, seconds);
                 }
             }
-            System.out.println("\nResults saved to unique_hands_results.csv");
-        } catch (IOException e) {
-            System.err.println("Error writing CSV file: " + e.getMessage());
         }
     }
 
-    private static int runTrialWithProgress(int deckSize, int handSize, int totalUniqueHands, int trialNum) {
+    private static int runTrialWithDetailedProgress(int deckSize, int handSize, int totalUniqueHands) {
         Set<Set<Card>> seenHands = new HashSet<>();
         int attempts = 0;
         int nextMilestone = 100_000;
         
         while (seenHands.size() < totalUniqueHands) {
-            // Draw a hand
+            // Create and shuffle a new deck
             Deck deck = new Deck(deckSize);
             deck.shuffle();
-            Set<Card> hand = new HashSet<>();
             
+            // Draw a hand
+            Set<Card> hand = new HashSet<>();
             while (hand.size() < handSize && deck.size() > 0) {
                 hand.add(deck.draw());
             }
             
+            // Only count full hands
             if (hand.size() == handSize) {
                 seenHands.add(hand);
             }
             attempts++;
             
             // Progress reporting
-            if (attempts == nextMilestone || seenHands.size() == totalUniqueHands) {
+            if (attempts >= nextMilestone || seenHands.size() == totalUniqueHands) {
                 double coverage = (double) seenHands.size() / totalUniqueHands * 100;
                 int remaining = totalUniqueHands - seenHands.size();
                 
@@ -77,11 +77,31 @@ public class UniqueHands {
                                     attempts, seenHands.size(), totalUniqueHands);
                 }
                 
-                // Update next milestone (every 100k attempts or when complete)
-                nextMilestone = (attempts / 100_000 + 1) * 100_000;
+                nextMilestone = attempts + 100_000;
             }
         }
         return attempts;
+    }
+
+    private static void initializeCSV() {
+        try {
+            Paths.get("unique_hands_results.csv").toFile().delete();
+            PrintWriter writer = new PrintWriter(new FileWriter("unique_hands_results.csv", true));
+            writer.println("Deck Size,Hand Size,Trial,Attempts,Time (sec)");
+            writer.close();
+        } catch (IOException e) {
+            System.err.println("Error initializing CSV: " + e.getMessage());
+        }
+    }
+
+    private static void writeToCSV(int deckSize, int handSize, int trial, 
+                                 int attempts, double timeSec) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("unique_hands_results.csv", true))) {
+            writer.printf("%d,%d,%d,%d,%.3f\n", 
+                         deckSize, handSize, trial, attempts, timeSec);
+        } catch (IOException e) {
+            System.err.println("Error writing to CSV: " + e.getMessage());
+        }
     }
 
     public static int calculateTotalUniqueHands(int deckSize, int handSize) {
@@ -91,12 +111,4 @@ public class UniqueHands {
         }
         return (int) result;
     }
-
-    //CSV writer had help creating this method 
-    private static PrintWriter createCSVWriter() throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("unique_hands_results.csv"));
-        writer.println("Deck Size,Hand Size,Trial,Attempts,Time (sec)");
-        return writer;
-    }
-
 }
